@@ -1,4 +1,144 @@
 defmodule Diver.Client do
+  require Logger
+
+  # -export([server/0]).
+  # -export([ensure_table_exists/1, ensure_table_family_exists/2]).
+  # -export([get_config/1, set_config/2]).
+  # -export([flush/0, prefetch_meta/1]).
+  #
+  # -export([get/2, get/3, get/4, scan/3, scan_sync/2]).
+  # -export([put/5, compare_and_set/6, increment/4]).
+  # -export([delete/2, delete/3, delete/4]).
+  #
+  # -define(CONNECT_TIMEOUT, (10 * 1000)).
+  #
+  # -type table() :: binary().
+  # -type cf() :: binary().
+  # -type rowkey() :: binary().
+  # -type qualifier() :: binary().
+  # -type value() :: binary().
+  # -type ts() :: integer().
+  #
+  # -type hbase_tuples() :: [hbase_tuple()].
+  # -type hbase_tuple() :: {cf(), rowkey(), qualifier(), value(), ts()}.
+  #
+  # -type config_key() :: flush_interval | increment_buffer_size.
+  # -type scan_opts() :: [scan_opt()].
+  # -type scan_opt() :: {num_rows, integer()}
+  #     | {family, binary()}
+  #     | {key_regexp, binary()}
+  #     | {max_num_bytes, integer()}
+  #     | {max_num_keyvalues, integer()}
+  #     | {max_num_rows, integer()}
+  #     | {max_timestamp, integer()}
+  #     | {max_versions, integer()}
+  #     | {qualifier, integer()}
+  #     | {server_block_cache, integer()}
+  #     | {start_key, binary()}
+  #     | {stop_key, binary()}
+  #     | {time_range, integer(), integer()}
+  #     | {filter, filter_opts()}.
+  #
+  # -type filter_opts() :: [filter_opt()].
+  # -type filter_opt() :: {column_prefix, binary()}
+  #     | {column_range, binary(), binary()}
+  #     | {first_key_only}
+  #     | {fuzzy_row, [{binary(), binary()}]}
+  #     | {key_only}
+  #     | {key_regexp, binary()}.
+  #
+  # -type error() :: {error, binary(), binary()} | {error, atom()}.
+  #
+  # -spec server() -> {atom(), atom()}.
+  # server() ->
+  #     {ok, NodeName} = gen_server:call(?MODULE, nodename),
+  #     NodeName.
+  #
+  # -spec ensure_table_exists(table()) -> ok | error().
+  # ensure_table_exists(Table) ->
+  #     gen_server:call(server(), {ensure_table_exists, Table}).
+  #
+  # -spec ensure_table_family_exists(table(), cf()) -> ok | error().
+  # ensure_table_family_exists(Table, CF) ->
+  #     gen_server:call(server(), {ensure_table_family_exists, Table, CF}).
+  #
+  # -spec get_config(config_key()) -> {ok, integer()} | error().
+  # get_config(Option) ->
+  #     gen_server:call(server(), {get_conf, Option}).
+  #
+  # -spec set_config(config_key(), integer()) -> {ok, integer()} | error().
+  # set_config(Option, Value) ->
+  #     gen_server:call(server(), {set_conf, Option, Value}).
+  #
+  # -spec flush() -> ok | error().
+  # flush() ->
+  #     gen_server:call(server(), {flush}).
+  #
+  # -spec prefetch_meta(table()) -> ok | error().
+  # prefetch_meta(Table) ->
+  #     gen_server:call(server(), {prefetch_meta, Table}).
+  #
+  # -spec get(table(), rowkey()) -> {ok, hbase_tuples()} | error().
+  # get(Table, Key) ->
+  #     gen_server:call(server(), {get, Table, Key}).
+  #
+  # -spec get(table(), rowkey(), cf()) -> {ok, hbase_tuples()} | error().
+  # get(Table, Key, CF) ->
+  #     gen_server:call(server(), {get, Table, Key, CF}).
+  #
+  # -spec get(table(), rowkey(), cf(), qualifier()) -> {ok, hbase_tuples()} | error().
+  # get(Table, Key, CF, Qualifier) ->
+  #     gen_server:call(server(), {get, Table, Key, CF, Qualifier}).
+  #
+  # -spec scan(binary(), scan_opts(), reference()) -> ok | error().
+  # scan(Table, Opts, Ref) ->
+  #     gen_server:call(server(), {scan, Table, Opts, Ref}).
+  #
+  # -spec scan_sync(binary(), scan_opts()) -> {ok, [hbase_tuples()]} | error().
+  # scan_sync(Table, Opts) ->
+  #     Ref = make_ref(),
+  #     ok = scan(Table, Opts, Ref),
+  #     receive_scan(Ref).
+  #
+  # receive_scan(Ref) ->
+  #     receive_scan(Ref, []).
+  #
+  # receive_scan(Ref, Acc) ->
+  #     receive
+  #         {Ref, row, Row} ->
+  #             receive_scan(Ref, [Row | Acc]);
+  #         {Ref, done} ->
+  #             {ok, lists:reverse(Acc)};
+  #         {Ref, error, _, _, _} ->
+  #             {error, internal}
+  #     after 5000 -> {error, timeout}
+  #     end.
+  #
+  # -spec put(table(), rowkey(), cf(), [qualifier()], [value()]) -> {ok, list()}.
+  # put(Table, Key, CF, Qualifiers, Values) ->
+  #     gen_server:call(server(), {put, {Table, Key, CF, Qualifiers, Values}}).
+  #
+  # -spec compare_and_set(table(), rowkey(), cf(), qualifier(), value(), value()) -> {ok, true | false}.
+  # compare_and_set(Table, Key, CF, Qualifier, Value, Expected) ->
+  #     gen_server:call(server(), {compare_and_set, {Table, Key, CF, [Qualifier], [Value]}, Expected}).
+  #
+  # -spec increment(table(), rowkey(), cf(), qualifier()) -> {ok, number()}.
+  # increment(Table, Key, CF, Qualifier) ->
+  #     gen_server:call(server(), {increment, Table, Key, CF, Qualifier}).
+  #
+  # -spec delete(table(), rowkey()) -> ok.
+  # delete(Table, Key) ->
+  #     gen_server:call(server(), {delete, Table, Key}).
+  #
+  # -spec delete(table(), rowkey(), cf()) -> ok.
+  # delete(Table, Key, CF) ->
+  #     gen_server:call(server(), {delete, Table, Key, CF}).
+  #
+  # -spec delete(table(), rowkey(), cf(), [qualifier()]) -> ok.
+  # delete(Table, Key, CF, Qualifiers) ->
+  #     gen_server:call(server(), {delete, Table, Key, CF, Qualifiers}).
+
+
 
   @doc """
   Returns a snapshot of usage statistics for this client.
@@ -10,16 +150,42 @@ defmodule Diver.Client do
     GenServer.call(server, {:client_stats}, timeout)
   end
 
+  # -spec delete(table(), rowkey()) -> ok.
+  # delete(Table, Key) ->
+  #     gen_server:call(server(), {delete, Table, Key}).
+  #
+  # -spec delete(table(), rowkey(), cf()) -> ok.
+  # delete(Table, Key, CF) ->
+  #     gen_server:call(server(), {delete, Table, Key, CF}).
+  #
+  # -spec delete(table(), rowkey(), cf(), [qualifier()]) -> ok.
+  # delete(Table, Key, CF, Qualifiers) ->
+  #     gen_server:call(server(), {delete, Table, Key, CF, Qualifiers}).
   @doc """
   Deletes data from HBase.
 
   See http://tsunanet.net/~tsuna/asynchbase/api/org/hbase/async/HBaseClient.html#delete(org.hbase.async.DeleteRequest)
   """
-  def delete(table, key, family, qualifiers, timeout \\ 5000) do
+  def delete4(table, key, family, qualifiers, timeout \\ 5000)
+    when is_binary(table) and is_binary(key) and is_binary(family) and
+         is_list(qualifiers) and is_integer(timeout) do
     server = get_java_server()
-    GenServer.call(server, {:delete, table, key, family, qualifiers}, timeout)
+    GenServer.call(server, {:delete, table, key, family}, timeout)
+  end
+  
+  def delete3(table, key, family, timeout \\ 5000)
+    when is_binary(table) and is_binary(key) and
+         is_binary(family) and is_integer(timeout) do
+    server = get_java_server()
+    GenServer.call(server, {:delete, table, key, family}, timeout)
   end
 
+  def delete(table, key, timeout \\ 5000)
+    when is_binary(table) and is_binary(key) and is_integer(timeout) do
+    server = get_java_server()
+    GenServer.call(server, {:delete, table, key}, timeout)
+  end
+  
   @doc """
   Ensures that a given table really exists.
 
@@ -57,13 +223,39 @@ defmodule Diver.Client do
     server = get_java_server()
     GenServer.call(server, {:flush}, timeout)
   end
-
+  
+  # -spec get(table(), rowkey()) -> {ok, hbase_tuples()} | error().
+  # get(Table, Key) ->
+  #     gen_server:call(server(), {get, Table, Key}).
+  #
+  # -spec get(table(), rowkey(), cf()) -> {ok, hbase_tuples()} | error().
+  # get(Table, Key, CF) ->
+  #     gen_server:call(server(), {get, Table, Key, CF}).
+  #
+  # -spec get(table(), rowkey(), cf(), qualifier()) -> {ok, hbase_tuples()} | error().
+  # get(Table, Key, CF, Qualifier) ->
+  #     gen_server:call(server(), {get, Table, Key, CF, Qualifier}).
+  #
   @doc """
   Retrieves data from HBase.
 
   See http://tsunanet.net/~tsuna/asynchbase/api/org/hbase/async/HBaseClient.html#get(org.hbase.async.GetRequest)
   """
-  def get(table, key, family, qualifier, timeout \\ 5000) do
+  def get(table, key, timeout \\ 5000)
+    when is_binary(table) and is_binary(key) do
+    server = get_java_server()
+    GenServer.call(server, {:get, table, key}, timeout)
+  end
+
+  def get3(table, key, family, timeout \\ 5000)
+    when is_binary(table) and is_binary(key) and is_binary(family) do
+    server = get_java_server()
+    GenServer.call(server, {:get, table, key, family}, timeout)
+  end
+
+  def get4(table, key, family, qualifier, timeout \\ 5000)
+    when is_binary(table) and is_binary(key) and
+         is_binary(family) and is_binary(qualifier) do
     server = get_java_server()
     GenServer.call(server, {:get, table, key, family, qualifier}, timeout)
   end
@@ -79,7 +271,7 @@ defmodule Diver.Client do
   """
   def get_flush_interval(timeout \\ 5000) do
     server = get_java_server()
-    GenServer.call(server, {:get_flush_interval}, timeout)
+    GenServer.call(server, {:get_conf, :flush_interval}, timeout)
   end
 
   @doc """
@@ -92,7 +284,7 @@ defmodule Diver.Client do
   """
   def get_increment_buffer_size(timeout \\ 5000) do
     server = get_java_server()
-    GenServer.call(server, {:get_increment_buffer_size}, timeout)
+    GenServer.call(server, {:get_conf, :increment_buffer_size}, timeout)
   end
 
   @doc """
@@ -104,6 +296,56 @@ defmodule Diver.Client do
     server = get_java_server()
     GenServer.call(server, {:prefetch_meta, table}, timeout)
   end
+  
+  # -type scan_opts() :: [scan_opt()].
+  # -type scan_opt() :: {num_rows, integer()}
+  #     | {family, binary()}
+  #     | {key_regexp, binary()}
+  #     | {max_num_bytes, integer()}
+  #     | {max_num_keyvalues, integer()}
+  #     | {max_num_rows, integer()}
+  #     | {max_timestamp, integer()}
+  #     | {max_versions, integer()}
+  #     | {qualifier, integer()}
+  #     | {server_block_cache, integer()}
+  #     | {start_key, binary()}
+  #     | {stop_key, binary()}
+  #     | {time_range, integer(), integer()}
+  #     | {filter, filter_opts()}.
+  #
+  # -type filter_opts() :: [filter_opt()].
+  # -type filter_opt() :: {column_prefix, binary()}
+  #     | {column_range, binary(), binary()}
+  #     | {first_key_only}
+  #     | {fuzzy_row, [{binary(), binary()}]}
+  #     | {key_only}
+  #     | {key_regexp, binary()}.
+  
+  def scan(table, ref, opts) do
+    timeout = opts |> Keyword.get(:timeout, 5000)
+    server = get_java_server()
+    GenServer.call(server, {:scan, table, opts, ref}, timeout)
+  end
+
+  def scan_sync(table, opts) do
+    ref = :erlang.make_ref
+    :ok = scan(table, ref, opts)
+    receive_scan(ref, [])
+  end
+  
+  defp receive_scan(ref, acc) do
+    receive do
+      {^ref, :row, row} ->
+        receive_scan(ref, [row | acc])
+      {^ref, :done} ->
+        Enum.reverse(acc)
+      {^ref, :error, _, _, _}=e ->
+        Logger.error "error: #{inspect e}"
+        {:error, :internal}
+    after 5000 ->
+      {:error, :timeout}
+    end
+  end
 
   @doc """
   Stores data in HBase.
@@ -114,9 +356,15 @@ defmodule Diver.Client do
 
   See http://tsunanet.net/~tsuna/asynchbase/api/org/hbase/async/HBaseClient.html#put(org.hbase.async.PutRequest)
   """
-  def put(table, key, family, qualifiers, values, timeout \\ 5000) do
+  def put(table, key, family, qualifier, value, timeout \\ 5000)
+  def put(table, key, family, qualifier, value, timeout)
+    when is_binary(qualifier) and is_binary(value) do
+    put(table, key, family, [qualifier], [value], timeout)
+  end
+  def put(table, key, family, qualifiers, values, timeout)
+    when is_list(qualifiers) and is_list(values) do
     server = get_java_server()
-    GenServer.call(server, {:put, table, key, family, qualifiers, values}, timeout)
+    GenServer.call(server, {:put, {table, key, family, qualifiers, values}}, timeout)
   end
 
   @doc """
@@ -143,7 +391,7 @@ defmodule Diver.Client do
   """
   def set_flush_interval(interval, timeout \\ 5000) do
     server = get_java_server()
-    GenServer.call(server, {:set_flush_interval, interval}, timeout)
+    GenServer.call(server, {:set_conf, :flush_interval, interval}, timeout)
   end
 
   @doc """
@@ -167,7 +415,7 @@ defmodule Diver.Client do
   """
   def set_increment_buffer_size(size, timeout \\ 5000) do
     server = get_java_server()
-    GenServer.call(server, {:set_increment_buffer_size, size}, timeout)
+    GenServer.call(server, {:set_conf, :increment_buffer_size, size}, timeout)
   end
 
   @doc false
