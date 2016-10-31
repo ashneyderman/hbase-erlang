@@ -6,9 +6,13 @@ defmodule Diver do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
-    children = [
-      worker(Diver.JavaServer, [Application.get_env(:diver, :zk)])
-    ]
+    children = if Application.get_env(:diver, :zk) do
+      [
+        worker(Diver.JavaServer, [Application.get_env(:diver, :zk)])
+      ]
+    else
+      []
+    end
 
     opts = [strategy: :one_for_one, name: Diver.Supervisor]
     Supervisor.start_link(children, opts)
