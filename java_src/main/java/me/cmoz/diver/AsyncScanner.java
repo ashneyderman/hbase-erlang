@@ -1,11 +1,33 @@
 package me.cmoz.diver;
 
-import com.ericsson.otp.erlang.*;
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBinary;
+import com.ericsson.otp.erlang.OtpErlangDecodeException;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangPid;
+import com.ericsson.otp.erlang.OtpErlangRef;
+import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.ericsson.otp.erlang.OtpMbox;
 import com.stumbleupon.async.Callback;
-import org.hbase.async.*;
+import org.hbase.async.ColumnPrefixFilter;
+import org.hbase.async.ColumnRangeFilter;
+import org.hbase.async.CompareFilter;
+import org.hbase.async.FilterList;
+import org.hbase.async.FirstKeyOnlyFilter;
+import org.hbase.async.FuzzyRowFilter;
+import org.hbase.async.KeyOnlyFilter;
+import org.hbase.async.KeyRegexpFilter;
+import org.hbase.async.KeyValue;
+import org.hbase.async.RegexStringComparator;
+import org.hbase.async.ScanFilter;
+import org.hbase.async.Scanner;
+import org.hbase.async.ValueFilter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
   private static final OtpErlangAtom ROW_ATOM = new OtpErlangAtom("row");
@@ -39,11 +61,13 @@ class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
         scanner.setMaxNumRows(numRows);
         break;
 
-      // TODO: setFamilies
       case "family":
-        scanner.setFamily(((OtpErlangBinary) optionValue).binaryValue());
+        if(optionValue.getClass().isAssignableFrom(OtpErlangList.class)) {
+          scanner.setFamilies(familiesFromList((OtpErlangList) optionValue));
+        } else {
+          scanner.setFamily(((OtpErlangBinary) optionValue).binaryValue());
+        }
         break;
-      // TODO: setFilter
       case "key_regexp":
         scanner.setKeyRegexp(new String(((OtpErlangBinary) optionValue).binaryValue()));
         break;
@@ -83,13 +107,36 @@ class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
           ((OtpErlangLong) timeRangeElems[1]).longValue());
         break;
       case "filter":
-        scanner.setFilter(filterFromTuple((OtpErlangTuple)optionValue));
+        if(optionValue.getClass().isAssignableFrom(OtpErlangList.class)) {
+          List<ScanFilter> filters = filterFromList((OtpErlangList)optionValue);
+          scanner.setFilter(new FilterList(filters));
+        } else {
+          scanner.setFilter(filterFromTuple((OtpErlangTuple)optionValue));
+        }
         break;
       default:
         final String message = String.format("Invalid scan option: \"%s\"", tuple);
         throw new OtpErlangDecodeException(message);
       }
     }
+  }
+
+  private String[] familiesFromList(OtpErlangList list) {
+    String [] families = new String[list.arity()];
+
+    for (int i = 0; i < list.arity(); i++) {
+      families[i] = new String(((OtpErlangBinary) list.elementAt(i)).binaryValue());
+    }
+
+    return families;
+  }
+
+  private List<ScanFilter> filterFromList(OtpErlangList filters) {
+    List<ScanFilter> result = new ArrayList<ScanFilter>();
+    while (filters.iterator().hasNext()) {
+      result.add(filterFromTuple((OtpErlangTuple) filters.iterator().next()));
+    }
+    return result;
   }
 
   private ScanFilter filterFromTuple(OtpErlangTuple tuple) {
@@ -117,6 +164,9 @@ class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
       case "key_regexp":
         return new KeyRegexpFilter(((OtpErlangBinary)objs[1]).binaryValue());
       //TODO: timestamps
+      case "value":
+        return new ValueFilter(CompareFilter.CompareOp.EQUAL, new RegexStringComparator(new String(((OtpErlangBinary)objs[1]).binaryValue())));
+
       default:
         throw new IllegalArgumentException("unknown filter key: " + name.atomValue());
     }
