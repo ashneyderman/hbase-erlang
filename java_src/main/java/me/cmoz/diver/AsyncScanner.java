@@ -24,9 +24,12 @@ import org.hbase.async.RegexStringComparator;
 import org.hbase.async.ScanFilter;
 import org.hbase.async.Scanner;
 import org.hbase.async.ValueFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
@@ -38,6 +41,8 @@ class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
   private final OtpErlangRef ref;
   private final Scanner scanner;
   int numRows = Integer.MAX_VALUE;
+
+  private static final Logger log = LoggerFactory.getLogger(AsyncScanner.class);
 
   public AsyncScanner(OtpErlangTuple from, OtpMbox mbox, OtpErlangRef ref, Scanner scanner, OtpErlangList options)
         throws OtpErlangDecodeException {
@@ -132,9 +137,11 @@ class AsyncScanner implements Callback<Object, ArrayList<ArrayList<KeyValue>>> {
   }
 
   private List<ScanFilter> filterFromList(OtpErlangList filters) {
-    List<ScanFilter> result = new ArrayList<ScanFilter>();
-    while (filters.iterator().hasNext()) {
-      result.add(filterFromTuple((OtpErlangTuple) filters.iterator().next()));
+    List<ScanFilter> result = new ArrayList<>();
+    Iterator<OtpErlangObject> iterator = filters.iterator();
+    while (iterator.hasNext()) {
+      OtpErlangTuple f = (OtpErlangTuple) iterator.next();
+      result.add(filterFromTuple(f));
     }
     return result;
   }
