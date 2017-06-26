@@ -34,10 +34,11 @@ sourceSets.main.compileClasspath += configurations.providedCompile
 sourceSets.test.compileClasspath += configurations.providedCompile
 
 dependencies {
-  def slf4jVersion = '1.7.21'
+  def slf4jVersion = '1.8.0-alpha2'
 
-  compile('org.hbase:asynchbase:1.7.2') {
+  compile('org.hbase:asynchbase:1.8.0') {
     exclude group: 'org.jboss.netty'
+    exclude group: 'org.slf4j'
   }
 
   providedCompile(
@@ -64,7 +65,7 @@ jar {
   }
 
   manifest {
-    attributes 'Implementation-Title': project.name,
+    attributes 'Implementation-Title': 'diver',
                'Implementation-Version': project.version,
                'Main-Class': mainClassName,
                'Created-By': "Gradle $gradle.gradleVersion",

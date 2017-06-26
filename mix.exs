@@ -26,7 +26,7 @@ defmodule Diver.Mixfile do
   def application do
     [applications: [:logger],
      env: [zk: [quorum_spec: "localhost", base_path: "/hbase"],
-           jvm_args: ["-Djava.awt.headless=true", "-Xms256m", "-Xmx1024m", "-XX:MaxPermSize=128m"]],
+           jvm_args: ["-Djava.awt.headless=true", "-Dorg.slf4j.simpleLogger.defaultLogLevel=error", "-Xms256m", "-Xmx1024m"]],
      mod: {Diver, []}]
   end
 
